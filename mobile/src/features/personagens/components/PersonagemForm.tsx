@@ -103,6 +103,7 @@ export function PersonagemForm({
             autoCapitalize="words"
             autoComplete="name"
             control={control}
+            editable={!isBusy}
             label="Nome *"
             name="nome"
             placeholder="Ex.: Percy Jackson"
@@ -110,6 +111,7 @@ export function PersonagemForm({
           />
           <FormField
             control={control}
+            editable={!isBusy}
             label="Descrição *"
             multiline
             name="descricao"
@@ -121,6 +123,7 @@ export function PersonagemForm({
             <View style={styles.rowItem}>
               <FormField
                 control={control}
+                editable={!isBusy}
                 inputMode="numeric"
                 keyboardType="number-pad"
                 label="Idade"
@@ -132,6 +135,7 @@ export function PersonagemForm({
               <FormField
                 autoCapitalize="none"
                 control={control}
+                editable={!isBusy}
                 hint="Formato: AAAA-MM-DD"
                 label="Data de nascimento"
                 name="data_nascimento"
@@ -141,6 +145,7 @@ export function PersonagemForm({
           </View>
           <FormField
             control={control}
+            editable={!isBusy}
             label="Poderes"
             multiline
             name="poderes"
@@ -151,6 +156,7 @@ export function PersonagemForm({
           <FormField
             autoCapitalize="words"
             control={control}
+            editable={!isBusy}
             label="Raça"
             name="raca"
             placeholder="Ex.: Semideus"
@@ -158,6 +164,7 @@ export function PersonagemForm({
           <FormField
             autoCapitalize="words"
             control={control}
+            editable={!isBusy}
             label="Parentesco divino"
             name="parentesco_divino"
             placeholder="Ex.: Poseidon"

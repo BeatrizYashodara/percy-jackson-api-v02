@@ -11,5 +11,10 @@ export default function Detail() {
     return <RequestState error="Este personagem não foi encontrado." onRetry={back} />;
   }
 
-  return <CharacterDetailScreen key={characterId} id={characterId} onBack={back} />;
+  return <CharacterDetailScreen
+    key={characterId}
+    id={characterId}
+    onBack={back}
+    onEdit={() => router.push({ pathname: '/personagens/[id]/editar', params: { id: characterId } })}
+  />;
 }

@@ -89,6 +89,39 @@ test('create sends populated optional fields and exposes API validation errors',
   }), /nome já está cadastrado/);
 });
 
+test('update patches the character endpoint with normalized data', async () => {
+  const updated = { ...character, nome: 'Personagem atualizado', idade: 17 };
+  const api = createPersonagensApi('http://api.test/api', success(updated, (config) => {
+    assert.equal(config.method, 'patch');
+    assert.equal(config.url, '/personagens/7');
+    assert.deepEqual(JSON.parse(config.data as string), {
+      nome: 'Personagem atualizado', descricao: 'Registro de teste', idade: 17,
+    });
+  }));
+
+  assert.deepEqual(await api.update(7, {
+    nome: 'Personagem atualizado', descricao: 'Registro de teste', idade: 17,
+    data_nascimento: null, poderes: null, raca: null, parentesco_divino: null,
+  }), updated);
+});
+
+test('update exposes 404, 422, network, timeout and server errors', async () => {
+  const values = {
+    nome: 'Teste', descricao: 'Teste', idade: null, data_nascimento: null,
+    poderes: null, raca: null, parentesco_divino: null,
+  };
+  await assert.rejects(createPersonagensApi('http://api.test/api', failure(404)).update(99, values), /não foi encontrado/);
+  await assert.rejects(createPersonagensApi('http://api.test/api', failure(422, {
+    errors: { nome: ['Este nome já está em uso.'] },
+  })).update(7, values), /nome já está em uso/);
+  await assert.rejects(createPersonagensApi('http://api.test/api', failure(500)).update(7, values), /servidor não conseguiu/);
+
+  const network: AxiosAdapter = async (config) => { throw new AxiosError('Network Error', 'ERR_NETWORK', config); };
+  await assert.rejects(createPersonagensApi('http://api.test/api', network).update(7, values), /Não foi possível conectar/);
+  const timeout: AxiosAdapter = async (config) => { throw new AxiosError('timeout', 'ETIMEDOUT', config); };
+  await assert.rejects(createPersonagensApi('http://api.test/api', timeout).update(7, values), /demorou para responder/);
+});
+
 test('HTTP, validation and network errors have readable messages', async () => {
   await assert.rejects(createPersonagensApi('http://api.test/api', failure(404)).show(7), /não foi encontrado/);
   await assert.rejects(createPersonagensApi('http://api.test/api', failure(500)).list(), /servidor não conseguiu/);

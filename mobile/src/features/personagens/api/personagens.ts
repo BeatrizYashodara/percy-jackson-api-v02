@@ -94,6 +94,15 @@ function buildPersonagensApi(client: AxiosInstance, baseUrl: string) {
     }
   }
 
+  async function patch(path: string, body: unknown): Promise<unknown> {
+    if (!isValidApiUrl(baseUrl)) throw new ApiError('A conexão com o servidor ainda não foi configurada.');
+    try {
+      return (await client.patch(path, body)).data;
+    } catch (error) {
+      throw readableApiError(error);
+    }
+  }
+
   return {
     async list(signal?: AbortSignal): Promise<Personagem[]> {
       const data = await get('/personagens', signal);
@@ -105,6 +114,9 @@ function buildPersonagensApi(client: AxiosInstance, baseUrl: string) {
     },
     async create(values: PersonagemFormData): Promise<Personagem> {
       return parsePersonagem(await post('/personagens', createPersonagemPayload(values)));
+    },
+    async update(id: number, values: PersonagemFormData): Promise<Personagem> {
+      return parsePersonagem(await patch(`/personagens/${id}`, createPersonagemPayload(values)));
     },
   };
 }

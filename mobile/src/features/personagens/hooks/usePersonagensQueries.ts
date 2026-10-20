@@ -48,3 +48,16 @@ export function useCreatePersonagemMutation() {
     },
   });
 }
+
+export function useUpdatePersonagemMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, values }: { id: number; values: Parameters<typeof personagensApi.update>[1] }) =>
+      personagensApi.update(id, values),
+    onSuccess: async (personagem) => {
+      queryClient.setQueryData(personagensQueryKeys.detail(personagem.id), personagem);
+      await queryClient.invalidateQueries({ queryKey: listKey, exact: true });
+    },
+  });
+}

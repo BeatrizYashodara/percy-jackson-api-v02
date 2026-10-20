@@ -9,7 +9,7 @@ function Field({ label, value }: { label: string; value: string | null }) {
   return <View style={styles.field}><Text style={styles.label}>{label}</Text><Text style={styles.value}>{value || 'Não informado'}</Text></View>;
 }
 
-export function CharacterDetailScreen({ id, onBack }: { id: number; onBack: () => void }) {
+export function CharacterDetailScreen({ id, onBack, onEdit }: { id: number; onBack: () => void; onEdit: () => void }) {
   const { data, error, isFetching, isPending, refetch } = usePersonagemQuery(id);
   const reload = () => { void refetch(); };
   return <View style={styles.screen}>
@@ -24,6 +24,9 @@ export function CharacterDetailScreen({ id, onBack }: { id: number; onBack: () =
       <CharacterPhoto uri={photoUrl(data)} name={data.nome} large />
       <Text style={styles.race}>{data.raca || 'Raça não informada'}</Text>
       <Text style={styles.title} accessibilityRole="header">{data.nome}</Text>
+      <Pressable accessibilityRole="button" onPress={onEdit} style={({ pressed }) => [styles.editButton, pressed && { opacity: 0.78 }]}>
+        <Text style={styles.editButtonText}>Editar</Text>
+      </Pressable>
       <Text style={styles.description}>{data.descricao}</Text>
       <View style={styles.fields}>
         <Field label="Parentesco divino" value={data.parentesco_divino} />
@@ -43,6 +46,8 @@ const styles = StyleSheet.create({
   content: { padding: 22, paddingBottom: 40, gap: 16, width: '100%', maxWidth: 760, alignSelf: 'center' },
   race: { color: colors.accent, fontSize: 14, fontWeight: '700', marginTop: 8 },
   title: { color: colors.ink, fontSize: 32, fontWeight: '700' },
+  editButton: { alignSelf: 'flex-start', minHeight: 44, justifyContent: 'center', paddingHorizontal: 20, borderRadius: 12, backgroundColor: colors.accent },
+  editButtonText: { color: colors.surface, fontSize: 15, fontWeight: '700' },
   description: { fontSize: 16, color: colors.muted, lineHeight: 26 },
   fields: { backgroundColor: colors.surface, borderRadius: 18, paddingHorizontal: 20, borderWidth: 1, borderColor: colors.line },
   field: { paddingVertical: 18, gap: 6 },
