@@ -2,8 +2,8 @@ import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { CharacterPhoto } from '../components/CharacterPhoto';
 import { RequestState } from '../components/RequestState';
 import { useApiData } from '../hooks/useApiData';
-import { personagensApi, photoUrl } from '../services/personagens';
-import { colors } from '../theme';
+import { personagensApi, photoUrl } from '../api/personagens';
+import { colors } from '../../../theme';
 
 export function CharacterListScreen({ onSelect }: { onSelect: (id: number) => void }) {
   const { data, loading, error, reload } = useApiData(personagensApi.list);

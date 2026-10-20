@@ -1,5 +1,5 @@
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors } from '../theme';
+import { colors } from '../../../theme';
 
 export function RequestState({ loading, error, onRetry }: { loading?: boolean; error?: string | null; onRetry: () => void }) {
   return (

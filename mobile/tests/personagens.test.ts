@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { createPersonagensApi, photoUrl } from '../src/services/personagens.ts';
-import type { Personagem } from '../src/types/personagem.ts';
+import { createPersonagensApi, photoUrl } from '../src/features/personagens/api/personagens.ts';
+import type { Personagem } from '../src/features/personagens/types/personagem.ts';
 
 // Synthetic fixture used only by tests; the app has no local character catalogue.
 const character: Personagem = {

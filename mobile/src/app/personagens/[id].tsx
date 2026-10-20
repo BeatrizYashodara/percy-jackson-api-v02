@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { RequestState } from '../../components/RequestState';
-import { CharacterDetailScreen } from '../../screens/CharacterDetailScreen';
+import { RequestState } from '../../features/personagens/components/RequestState';
+import { CharacterDetailScreen } from '../../features/personagens/screens/CharacterDetailScreen';
 
 export default function Detail() {
   const { id } = useLocalSearchParams<{ id: string }>();

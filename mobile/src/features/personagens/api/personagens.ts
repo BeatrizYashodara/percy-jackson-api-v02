@@ -1,4 +1,4 @@
-import { API_URL } from '../config/api.ts';
+import { API_URL } from '../../../config/api.ts';
 import type { Personagem } from '../types/personagem.ts';
 
 export class ApiError extends Error {}

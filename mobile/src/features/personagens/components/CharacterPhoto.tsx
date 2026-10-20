@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
-import { colors } from '../theme';
+import { colors } from '../../../theme';
 
 export function CharacterPhoto({ uri, name, large = false }: { uri: string | null; name: string; large?: boolean }) {
   const [failedUri, setFailedUri] = useState<string | null>(null);

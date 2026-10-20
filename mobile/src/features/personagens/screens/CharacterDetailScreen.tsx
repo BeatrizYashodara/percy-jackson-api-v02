@@ -3,8 +3,8 @@ import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'r
 import { CharacterPhoto } from '../components/CharacterPhoto';
 import { RequestState } from '../components/RequestState';
 import { useApiData } from '../hooks/useApiData';
-import { personagensApi, photoUrl } from '../services/personagens';
-import { colors } from '../theme';
+import { personagensApi, photoUrl } from '../api/personagens';
+import { colors } from '../../../theme';
 
 function Field({ label, value }: { label: string; value: string | null }) {
   return <View style={styles.field}><Text style={styles.label}>{label}</Text><Text style={styles.value}>{value || 'Não informado'}</Text></View>;
