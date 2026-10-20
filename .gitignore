@@ -31,3 +31,9 @@ Homestead.json
 .phpactor.json
 auth.json
 personagens-backup.json
+
+.env
+.env.*
+!.env.example
+mobile/.env
+personagens-backup.json
