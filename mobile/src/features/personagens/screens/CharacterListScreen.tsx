@@ -1,12 +1,13 @@
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { CharacterPhoto } from '../components/CharacterPhoto';
 import { RequestState } from '../components/RequestState';
-import { useApiData } from '../hooks/useApiData';
-import { personagensApi, photoUrl } from '../api/personagens';
+import { photoUrl } from '../api/personagens';
+import { usePersonagensQuery } from '../hooks/usePersonagensQueries';
 import { colors } from '../../../theme';
 
 export function CharacterListScreen({ onSelect }: { onSelect: (id: number) => void }) {
-  const { data, loading, error, reload } = useApiData(personagensApi.list);
+  const { data, error, isFetching, isPending, refetch } = usePersonagensQuery();
+  const reload = () => { void refetch(); };
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
@@ -16,11 +17,11 @@ export function CharacterListScreen({ onSelect }: { onSelect: (id: number) => vo
       </View>
       {data && data.length > 0 ? (
         <FlatList data={data} keyExtractor={(item) => String(item.id)}
-          contentContainerStyle={styles.list} refreshing={loading} onRefresh={reload}
+          contentContainerStyle={styles.list} refreshing={isFetching} onRefresh={reload}
           ListHeaderComponent={<View style={styles.listHeader}>
             <Text style={styles.count}>{data.length} personagens</Text>
             {error && <View accessibilityLiveRegion="polite">
-              <Text style={styles.error}>{error}</Text>
+              <Text style={styles.error}>{error.message}</Text>
               <Pressable accessibilityRole="button" onPress={reload} style={styles.retry}><Text style={styles.retryText}>Tentar novamente</Text></Pressable>
             </View>}
           </View>}
@@ -36,7 +37,7 @@ export function CharacterListScreen({ onSelect }: { onSelect: (id: number) => vo
               <Text style={styles.arrow} accessible={false}>›</Text>
             </Pressable>
           )} />
-      ) : <RequestState loading={loading} error={error} onRetry={reload} />}
+      ) : <RequestState loading={isPending} error={error?.message} onRetry={reload} />}
     </View>
   );
 }

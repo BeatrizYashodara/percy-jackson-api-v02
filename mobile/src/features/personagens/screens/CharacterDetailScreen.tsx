@@ -1,9 +1,8 @@
-import { useCallback } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { CharacterPhoto } from '../components/CharacterPhoto';
 import { RequestState } from '../components/RequestState';
-import { useApiData } from '../hooks/useApiData';
-import { personagensApi, photoUrl } from '../api/personagens';
+import { photoUrl } from '../api/personagens';
+import { usePersonagemQuery } from '../hooks/usePersonagensQueries';
 import { colors } from '../../../theme';
 
 function Field({ label, value }: { label: string; value: string | null }) {
@@ -11,8 +10,8 @@ function Field({ label, value }: { label: string; value: string | null }) {
 }
 
 export function CharacterDetailScreen({ id, onBack }: { id: number; onBack: () => void }) {
-  const load = useCallback((signal: AbortSignal) => personagensApi.show(id, signal), [id]);
-  const { data, loading, error, reload } = useApiData(load);
+  const { data, error, isFetching, isPending, refetch } = usePersonagemQuery(id);
+  const reload = () => { void refetch(); };
   return <View style={styles.screen}>
     <View style={styles.topBar}>
       <Pressable accessibilityRole="button" accessibilityLabel="Voltar para personagens" onPress={onBack} style={styles.back}>
@@ -20,8 +19,8 @@ export function CharacterDetailScreen({ id, onBack }: { id: number; onBack: () =
       </Pressable>
     </View>
     {data ? <ScrollView contentContainerStyle={styles.content}
-      refreshControl={<RefreshControl refreshing={loading} onRefresh={reload} tintColor={colors.ink} />}>
-      {error && <RequestState error={error} onRetry={reload} />}
+      refreshControl={<RefreshControl refreshing={isFetching} onRefresh={reload} tintColor={colors.ink} />}>
+      {error && <RequestState error={error.message} onRetry={reload} />}
       <CharacterPhoto uri={photoUrl(data)} name={data.nome} large />
       <Text style={styles.race}>{data.raca || 'Raça não informada'}</Text>
       <Text style={styles.title} accessibilityRole="header">{data.nome}</Text>
@@ -32,7 +31,7 @@ export function CharacterDetailScreen({ id, onBack }: { id: number; onBack: () =
         <Field label="Nascimento" value={data.data_nascimento?.split('-').reverse().join('/') ?? null} />
         <Field label="Poderes" value={data.poderes} />
       </View>
-    </ScrollView> : <RequestState loading={loading} error={error} onRetry={reload} />}
+    </ScrollView> : <RequestState loading={isPending} error={error?.message} onRetry={reload} />}
   </View>;
 }
 

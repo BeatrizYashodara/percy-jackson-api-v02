@@ -1,7 +1,17 @@
+import { isAxiosError, isCancel, type AxiosAdapter, type AxiosError, type AxiosInstance } from 'axios';
 import { API_URL } from '../../../config/api.ts';
+import { apiClient, createApiClient, isValidApiUrl, normalizeApiUrl } from '../../../lib/apiClient.ts';
 import type { Personagem } from '../types/personagem.ts';
 
-export class ApiError extends Error {}
+export class ApiError extends Error {
+  readonly status?: number;
+
+  constructor(message: string, status?: number) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+  }
+}
 
 function parsePersonagem(value: unknown): Personagem {
   if (!value || typeof value !== 'object') throw new ApiError('O servidor retornou dados inválidos.');
@@ -16,43 +26,45 @@ function parsePersonagem(value: unknown): Personagem {
   return item as Personagem;
 }
 
-export function createPersonagensApi(baseUrl: string, fetcher: typeof fetch = fetch, timeoutMs = 15000) {
-  const base = baseUrl.trim().replace(/\/+$/, '');
+function validationMessage(error: AxiosError): string | null {
+  const data = error.response?.data;
+  if (!data || typeof data !== 'object') return null;
+  const errors = (data as { errors?: unknown }).errors;
+  if (!errors || typeof errors !== 'object') return null;
+  for (const messages of Object.values(errors)) {
+    if (Array.isArray(messages) && typeof messages[0] === 'string') return messages[0];
+  }
+  return null;
+}
 
+export function readableApiError(error: unknown): Error {
+  if (error instanceof ApiError || isCancel(error)) return error;
+  if (!isAxiosError(error)) return new ApiError('Não foi possível processar a resposta da API.');
+
+  const status = error.response?.status;
+  if (status === 404) return new ApiError('Este personagem não foi encontrado.', status);
+  if (status === 422) {
+    return new ApiError(validationMessage(error) || 'Confira os campos informados e tente novamente.', status);
+  }
+  if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
+    return new ApiError('O servidor demorou para responder. Tente novamente.');
+  }
+  if (!error.response || error.code === 'ERR_NETWORK') {
+    return new ApiError('Não foi possível conectar à API. Verifique sua conexão e tente novamente.');
+  }
+  if (status && status >= 500) {
+    return new ApiError('O servidor não conseguiu atender à solicitação. Tente novamente.', status);
+  }
+  return new ApiError('Não foi possível concluir a solicitação. Tente novamente.', status);
+}
+
+function buildPersonagensApi(client: AxiosInstance, baseUrl: string) {
   async function get(path: string, signal?: AbortSignal): Promise<unknown> {
-    if (!/^https?:\/\/[^/\s]+/i.test(base)) {
-      throw new ApiError('A conexão com o servidor ainda não foi configurada.');
-    }
-
-    const controller = new AbortController();
-    const abort = () => controller.abort();
-    signal?.addEventListener('abort', abort, { once: true });
-    if (signal?.aborted) controller.abort();
-    const timer = setTimeout(abort, timeoutMs);
-
+    if (!isValidApiUrl(baseUrl)) throw new ApiError('A conexão com o servidor ainda não foi configurada.');
     try {
-      const response = await fetcher(`${base}${path}`, {
-        headers: { Accept: 'application/json' }, signal: controller.signal,
-      });
-      if (!response.ok) {
-        throw new ApiError(response.status === 404
-          ? 'Este personagem não foi encontrado.'
-          : 'O servidor não conseguiu atender à solicitação. Tente novamente.');
-      }
-      try {
-        return await response.json();
-      } catch (error) {
-        if (controller.signal.aborted) throw error;
-        throw new ApiError('O servidor retornou uma resposta inválida.');
-      }
+      return (await client.get(path, { signal })).data;
     } catch (error) {
-      if (signal?.aborted) throw error;
-      if (controller.signal.aborted) throw new ApiError('O servidor demorou para responder. Tente novamente.');
-      if (error instanceof ApiError) throw error;
-      throw new ApiError('Não foi possível conectar à API. Verifique sua conexão e tente novamente.');
-    } finally {
-      clearTimeout(timer);
-      signal?.removeEventListener('abort', abort);
+      throw readableApiError(error);
     }
   }
 
@@ -68,11 +80,15 @@ export function createPersonagensApi(baseUrl: string, fetcher: typeof fetch = fe
   };
 }
 
+export function createPersonagensApi(baseUrl: string, adapter?: AxiosAdapter, timeoutMs?: number) {
+  const normalized = normalizeApiUrl(baseUrl);
+  return buildPersonagensApi(createApiClient(normalized, adapter, timeoutMs), normalized);
+}
+
 export function photoUrl(personagem: Personagem, baseUrl = API_URL): string | null {
   const value = personagem.imagem_url || (personagem.imagem ? `storage/${personagem.imagem}` : null);
   if (!value) return null;
   try {
-    // Relative Storage paths are resolved against the backend, never the Expo server.
     const backend = `${baseUrl.replace(/\/+$/, '').replace(/\/api$/, '')}/`;
     const url = new URL(value, backend);
     return ['http:', 'https:'].includes(url.protocol) ? url.href : null;
@@ -81,4 +97,4 @@ export function photoUrl(personagem: Personagem, baseUrl = API_URL): string | nu
   }
 }
 
-export const personagensApi = createPersonagensApi(API_URL);
+export const personagensApi = buildPersonagensApi(apiClient, API_URL);

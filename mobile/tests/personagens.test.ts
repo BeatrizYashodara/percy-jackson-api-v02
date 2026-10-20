@@ -1,74 +1,94 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { AxiosError, CanceledError, type AxiosAdapter, type InternalAxiosRequestConfig } from 'axios';
+import { personagensQueryKeys } from '../src/features/personagens/api/queryKeys.ts';
 import { createPersonagensApi, photoUrl } from '../src/features/personagens/api/personagens.ts';
 import type { Personagem } from '../src/features/personagens/types/personagem.ts';
 
-// Synthetic fixture used only by tests; the app has no local character catalogue.
 const character: Personagem = {
   id: 7, nome: 'Personagem de teste', descricao: 'Registro de teste',
   idade: null, data_nascimento: null, raca: null, parentesco_divino: null,
   poderes: null, imagem: null, imagem_url: null,
 };
 
-test('list uses the configured API, normalizes trailing slashes and accepts unknown fields', async () => {
-  const fetcher: typeof fetch = async (url, options) => {
-    assert.equal(url, 'http://api.test/api/personagens');
-    assert.deepEqual(options?.headers, { Accept: 'application/json' });
-    assert.ok(options?.signal);
-    return Response.json([character]);
+function success(data: unknown, inspect?: (config: InternalAxiosRequestConfig) => void): AxiosAdapter {
+  return async (config) => {
+    inspect?.(config);
+    return { data, status: 200, statusText: 'OK', headers: {}, config };
   };
-  const api = createPersonagensApi('http://api.test/api///', fetcher);
-  assert.deepEqual(await api.list(), [character]);
+}
+
+function failure(status: number, data?: unknown): AxiosAdapter {
+  return async (config) => {
+    const response = { data, status, statusText: 'Error', headers: {}, config };
+    throw new AxiosError('Request failed', 'ERR_BAD_REQUEST', config, undefined, response);
+  };
+}
+
+test('list uses centralized Axios configuration and normalizes the API URL', async () => {
+  const adapter = success([character], (config) => {
+    assert.equal(config.baseURL, 'http://api.test/api');
+    assert.equal(config.url, '/personagens');
+    assert.equal(config.timeout, 15000);
+    assert.equal(config.headers.get('Accept'), 'application/json');
+    assert.ok(config.signal);
+  });
+  assert.deepEqual(
+    await createPersonagensApi('http://api.test/api///', adapter).list(new AbortController().signal),
+    [character],
+  );
 });
 
-test('details fetch their own endpoint by ID', async () => {
-  const api = createPersonagensApi('http://api.test/api', async (url) => {
-    assert.equal(url, 'http://api.test/api/personagens/7');
-    return Response.json({ ...character, idade: 0, data_nascimento: '2000-02-29' });
-  });
+test('details use their own endpoint and query keys are stable', async () => {
+  const api = createPersonagensApi('http://api.test/api', success(
+    { ...character, idade: 0, data_nascimento: '2000-02-29' },
+    (config) => assert.equal(config.url, '/personagens/7'),
+  ));
   assert.equal((await api.show(7)).idade, 0);
+  assert.deepEqual(personagensQueryKeys.list(), ['personagens', 'list']);
+  assert.deepEqual(personagensQueryKeys.detail(7), ['personagens', 'detail', 7]);
 });
 
 test('an empty API list stays empty', async () => {
-  const api = createPersonagensApi('http://api.test/api', async () => Response.json([]));
-  assert.deepEqual(await api.list(), []);
+  assert.deepEqual(await createPersonagensApi('http://api.test/api', success([])).list(), []);
 });
 
-test('404, server errors and network errors have readable messages', async () => {
-  for (const [status, expected] of [[404, /não foi encontrado/], [500, /servidor não conseguiu/]] as const) {
-    const api = createPersonagensApi('http://api.test/api', async () => new Response(null, { status }));
-    await assert.rejects(api.show(7), expected);
-  }
-  const api = createPersonagensApi('http://api.test/api', async () => { throw new TypeError('Failed to fetch'); });
-  await assert.rejects(api.list(), /Não foi possível conectar/);
+test('HTTP, validation and network errors have readable messages', async () => {
+  await assert.rejects(createPersonagensApi('http://api.test/api', failure(404)).show(7), /não foi encontrado/);
+  await assert.rejects(createPersonagensApi('http://api.test/api', failure(500)).list(), /servidor não conseguiu/);
+  await assert.rejects(
+    createPersonagensApi('http://api.test/api', failure(422, { errors: { nome: ['O nome já está em uso.'] } })).list(),
+    /nome já está em uso/,
+  );
+  const network: AxiosAdapter = async (config) => { throw new AxiosError('Network Error', 'ERR_NETWORK', config); };
+  await assert.rejects(createPersonagensApi('http://api.test/api', network).list(), /Não foi possível conectar/);
 });
 
-test('invalid JSON and invalid character contracts are rejected', async () => {
-  const html = createPersonagensApi('http://api.test/api', async () => new Response('<html>Error</html>'));
-  await assert.rejects(html.list(), /resposta inválida/);
-  for (const payload of [{ data: [character] }, [{ ...character, idade: 'Imortal' }], [null]]) {
-    const api = createPersonagensApi('http://api.test/api', async () => Response.json(payload));
-    await assert.rejects(api.list(), /inválid/);
+test('invalid response contracts are rejected', async () => {
+  for (const payload of ['<html>Error</html>', { data: [character] }, [{ ...character, idade: 'Imortal' }], [null]]) {
+    await assert.rejects(createPersonagensApi('http://api.test/api', success(payload)).list(), /inválid/);
   }
 });
 
 test('missing configuration does not make a request', async () => {
-  const api = createPersonagensApi('', async () => { assert.fail('fetch should not run'); });
-  await assert.rejects(api.list(), /não foi configurada/);
+  const adapter: AxiosAdapter = async () => { assert.fail('Axios should not run'); };
+  await assert.rejects(createPersonagensApi('', adapter).list(), /não foi configurada/);
 });
 
-test('slow requests time out and navigation cancellation reaches fetch', async () => {
-  const waitingFetch: typeof fetch = (_url, options) => new Promise((_resolve, reject) => {
-    const onAbort = () => reject(new DOMException('Aborted', 'AbortError'));
-    if (options?.signal?.aborted) onAbort();
-    else options?.signal?.addEventListener('abort', onAbort, { once: true });
+test('timeouts are readable and cancellation reaches Axios', async () => {
+  const timeout: AxiosAdapter = async (config) => { throw new AxiosError('timeout', 'ECONNABORTED', config); };
+  await assert.rejects(createPersonagensApi('http://api.test/api', timeout).list(), /demorou para responder/);
+
+  const waiting: AxiosAdapter = (config) => new Promise((_resolve, reject) => {
+    const cancel = () => reject(new CanceledError('canceled', config));
+    const signal = config.signal;
+    if (signal?.aborted) cancel();
+    else signal?.addEventListener?.('abort', cancel, { once: true });
   });
-  const api = createPersonagensApi('http://api.test/api', waitingFetch, 10);
-  await assert.rejects(api.list(), /demorou para responder/);
   const controller = new AbortController();
-  const result = api.list(controller.signal);
+  const result = createPersonagensApi('http://api.test/api', waiting).list(controller.signal);
   controller.abort();
-  await assert.rejects(result, { name: 'AbortError' });
+  await assert.rejects(result, { code: 'ERR_CANCELED' });
 });
 
 test('photo URLs use the backend, preserve absolute URLs and allow no photo', () => {
