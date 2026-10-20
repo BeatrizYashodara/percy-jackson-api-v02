@@ -553,7 +553,7 @@ class PersonagemSeeder extends Seeder
         ];
 
         foreach ($personagens as $personagem) {
-            Personagem::updateOrCreate(
+            Personagem::firstOrCreate(
                 ['nome' => $personagem['nome']],
                 $personagem
             );
