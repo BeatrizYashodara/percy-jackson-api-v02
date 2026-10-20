@@ -2,6 +2,23 @@ import { isAxiosError, isCancel, type AxiosAdapter, type AxiosError, type AxiosI
 import { API_URL } from '../../../config/api.ts';
 import { apiClient, createApiClient, isValidApiUrl, normalizeApiUrl } from '../../../lib/apiClient.ts';
 import type { Personagem } from '../types/personagem.ts';
+import type { PersonagemFormData } from '../schemas/personagemFormSchema.ts';
+
+export type CreatePersonagemPayload = {
+  nome: string;
+  descricao: string;
+  idade?: number;
+  data_nascimento?: string;
+  poderes?: string;
+  raca?: string;
+  parentesco_divino?: string;
+};
+
+export function createPersonagemPayload(values: PersonagemFormData): CreatePersonagemPayload {
+  return Object.fromEntries(
+    Object.entries(values).filter(([, value]) => value !== null && value !== ''),
+  ) as CreatePersonagemPayload;
+}
 
 export class ApiError extends Error {
   readonly status?: number;
@@ -68,6 +85,15 @@ function buildPersonagensApi(client: AxiosInstance, baseUrl: string) {
     }
   }
 
+  async function post(path: string, body: unknown): Promise<unknown> {
+    if (!isValidApiUrl(baseUrl)) throw new ApiError('A conexão com o servidor ainda não foi configurada.');
+    try {
+      return (await client.post(path, body)).data;
+    } catch (error) {
+      throw readableApiError(error);
+    }
+  }
+
   return {
     async list(signal?: AbortSignal): Promise<Personagem[]> {
       const data = await get('/personagens', signal);
@@ -76,6 +102,9 @@ function buildPersonagensApi(client: AxiosInstance, baseUrl: string) {
     },
     async show(id: number, signal?: AbortSignal): Promise<Personagem> {
       return parsePersonagem(await get(`/personagens/${id}`, signal));
+    },
+    async create(values: PersonagemFormData): Promise<Personagem> {
+      return parsePersonagem(await post('/personagens', createPersonagemPayload(values)));
     },
   };
 }

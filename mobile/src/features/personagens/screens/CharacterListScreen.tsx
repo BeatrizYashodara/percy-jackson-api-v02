@@ -5,7 +5,7 @@ import { photoUrl } from '../api/personagens';
 import { usePersonagensQuery } from '../hooks/usePersonagensQueries';
 import { colors } from '../../../theme';
 
-export function CharacterListScreen({ onSelect }: { onSelect: (id: number) => void }) {
+export function CharacterListScreen({ onSelect, onCreate }: { onSelect: (id: number) => void; onCreate: () => void }) {
   const { data, error, isFetching, isPending, refetch } = usePersonagensQuery();
   const reload = () => { void refetch(); };
   return (
@@ -14,6 +14,9 @@ export function CharacterListScreen({ onSelect }: { onSelect: (id: number) => vo
         <Text style={styles.eyebrow}>PERCY JACKSON</Text>
         <Text style={styles.title} accessibilityRole="header">Personagens</Text>
         <Text style={styles.subtitle}>Conheça quem faz parte deste universo.</Text>
+        <Pressable accessibilityRole="button" onPress={onCreate} style={({ pressed }) => [styles.createButton, pressed && { opacity: 0.78 }]}>
+          <Text style={styles.createButtonText}>Cadastrar personagem</Text>
+        </Pressable>
       </View>
       {data && data.length > 0 ? (
         <FlatList data={data} keyExtractor={(item) => String(item.id)}
@@ -48,6 +51,8 @@ const styles = StyleSheet.create({
   eyebrow: { color: '#DFBB78', fontSize: 12, letterSpacing: 3, fontWeight: '700' },
   title: { color: '#FFFFFF', fontSize: 34, fontWeight: '700' },
   subtitle: { color: '#CFDCDE', fontSize: 15, lineHeight: 22 },
+  createButton: { alignSelf: 'flex-start', marginTop: 8, minHeight: 44, justifyContent: 'center', paddingHorizontal: 18, borderRadius: 12, backgroundColor: '#DFBB78' },
+  createButtonText: { color: colors.ink, fontSize: 15, fontWeight: '700' },
   list: { padding: 18, paddingBottom: 32, gap: 12, width: '100%', maxWidth: 760, alignSelf: 'center' },
   listHeader: { gap: 12, paddingBottom: 2 },
   count: { color: colors.muted, fontSize: 13, fontWeight: '600' },

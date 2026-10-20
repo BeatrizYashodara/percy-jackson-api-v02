@@ -53,6 +53,42 @@ test('an empty API list stays empty', async () => {
   assert.deepEqual(await createPersonagensApi('http://api.test/api', success([])).list(), []);
 });
 
+test('create posts normalized data and omits empty optional fields', async () => {
+  const api = createPersonagensApi('http://api.test/api', success(character, (config) => {
+    assert.equal(config.method, 'post');
+    assert.equal(config.url, '/personagens');
+    assert.deepEqual(JSON.parse(config.data as string), {
+      nome: 'Personagem de teste',
+      descricao: 'Registro de teste',
+    });
+  }));
+
+  assert.deepEqual(await api.create({
+    nome: 'Personagem de teste', descricao: 'Registro de teste', idade: null,
+    data_nascimento: null, poderes: null, raca: null, parentesco_divino: null,
+  }), character);
+});
+
+test('create sends populated optional fields and exposes API validation errors', async () => {
+  const values = {
+    nome: 'Personagem de teste', descricao: 'Registro de teste', idade: 16,
+    data_nascimento: '2000-08-18', poderes: 'Hidrocinese', raca: 'Semideus',
+    parentesco_divino: 'Poseidon',
+  };
+  const api = createPersonagensApi('http://api.test/api', success(character, (config) => {
+    assert.deepEqual(JSON.parse(config.data as string), values);
+  }));
+  await api.create(values);
+
+  const invalidApi = createPersonagensApi('http://api.test/api', failure(422, {
+    errors: { nome: ['Este nome já está cadastrado.'] },
+  }));
+  await assert.rejects(invalidApi.create({
+    nome: 'Duplicado', descricao: 'Teste', idade: null, data_nascimento: null,
+    poderes: null, raca: null, parentesco_divino: null,
+  }), /nome já está cadastrado/);
+});
+
 test('HTTP, validation and network errors have readable messages', async () => {
   await assert.rejects(createPersonagensApi('http://api.test/api', failure(404)).show(7), /não foi encontrado/);
   await assert.rejects(createPersonagensApi('http://api.test/api', failure(500)).list(), /servidor não conseguiu/);

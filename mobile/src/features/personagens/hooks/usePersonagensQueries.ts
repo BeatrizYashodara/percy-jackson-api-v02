@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient, type QueryKey } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient, type QueryKey } from '@tanstack/react-query';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useRef } from 'react';
 import { personagensApi } from '../api/personagens';
@@ -35,4 +35,16 @@ export function usePersonagemQuery(id: number) {
   });
   useQueryFocus(queryKey, query.refetch);
   return query;
+}
+
+export function useCreatePersonagemMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: personagensApi.create,
+    onSuccess: async (personagem) => {
+      queryClient.setQueryData(personagensQueryKeys.detail(personagem.id), personagem);
+      await queryClient.invalidateQueries({ queryKey: listKey, exact: true });
+    },
+  });
 }
