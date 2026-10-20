@@ -33,7 +33,7 @@ services:
       - key: QUEUE_CONNECTION
         value: database
       - key: PERSONAGENS_FILESYSTEM_DISK
-        value: s3
+        value: public
       - key: AWS_ACCESS_KEY_ID
         sync: false
       - key: AWS_SECRET_ACCESS_KEY
