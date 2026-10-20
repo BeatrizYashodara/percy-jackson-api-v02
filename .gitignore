@@ -1,4 +1,7 @@
 /vendor/
+/.env
+/mobile/.env
+personagens-backup.json
 node_modules/
 npm-debug.log
 yarn-error.log
@@ -27,3 +30,4 @@ Homestead.json
 .env.production
 .phpactor.json
 auth.json
+personagens-backup.json

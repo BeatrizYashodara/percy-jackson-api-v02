@@ -16,7 +16,9 @@ class Personagem extends Model
 
     public function getImagemUrlAttribute(): ?string
     {
-        return $this->imagem ? Storage::disk('public')->url($this->imagem) : null;
+        return $this->imagem
+            ? Storage::disk((string) config('filesystems.personagens_disk', 'public'))->url($this->imagem)
+            : null;
     }
 
     protected function casts(): array

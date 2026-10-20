@@ -91,7 +91,7 @@ class PersonagemController extends Controller
 
     private function storePhoto(UploadedFile $photo): string
     {
-        $path = $photo->store('personagens', 'public');
+        $path = $photo->store('personagens', $this->photoDisk());
 
         if ($path === false) {
             throw new RuntimeException('Não foi possível armazenar a foto.');
@@ -104,7 +104,7 @@ class PersonagemController extends Controller
     {
         // Only delete files owned by this upload flow, never legacy labels or arbitrary paths.
         if ($path !== null && preg_match('~^personagens/[A-Za-z0-9]+\.(jpg|jpeg|png|webp)$~D', $path)) {
-            if (! Storage::disk('public')->delete($path)) {
+            if (! Storage::disk($this->photoDisk())->delete($path)) {
                 throw new RuntimeException('Não foi possível excluir a foto.');
             }
         }
@@ -112,17 +112,20 @@ class PersonagemController extends Controller
 
     private function rules(?int $id = null, bool $sometimes = false): array
     {
-        $prefix = $sometimes ? 'sometimes|' : '';
-
         return [
             'nome' => [$sometimes ? 'sometimes' : 'required', 'string', 'max:255', Rule::unique('personagens', 'nome')->ignore($id)],
             'descricao' => [$sometimes ? 'sometimes' : 'required', 'string'],
-            'data_nascimento' => [$prefix . 'nullable', 'date_format:Y-m-d'],
-            'idade' => [$prefix . 'nullable', 'integer', 'min:0', 'max:2147483647'],
-            'poderes' => [$prefix . 'nullable', 'string'],
-            'raca' => [$prefix . 'nullable', 'string', 'max:255'],
-            'parentesco_divino' => [$prefix . 'nullable', 'string', 'max:255'],
-            'imagem' => [$prefix . 'nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'data_nascimento' => [...($sometimes ? ['sometimes'] : []), 'nullable', 'date_format:Y-m-d'],
+            'idade' => [...($sometimes ? ['sometimes'] : []), 'nullable', 'integer', 'min:0', 'max:2147483647'],
+            'poderes' => [...($sometimes ? ['sometimes'] : []), 'nullable', 'string'],
+            'raca' => [...($sometimes ? ['sometimes'] : []), 'nullable', 'string', 'max:255'],
+            'parentesco_divino' => [...($sometimes ? ['sometimes'] : []), 'nullable', 'string', 'max:255'],
+            'imagem' => [...($sometimes ? ['sometimes'] : []), 'nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
         ];
+    }
+
+    private function photoDisk(): string
+    {
+        return (string) config('filesystems.personagens_disk', 'public');
     }
 }
