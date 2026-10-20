@@ -15,6 +15,7 @@ export default function Detail() {
     key={characterId}
     id={characterId}
     onBack={back}
+    onDeleted={() => router.replace('/')}
     onEdit={() => router.push({ pathname: '/personagens/[id]/editar', params: { id: characterId } })}
   />;
 }

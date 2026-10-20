@@ -61,3 +61,15 @@ export function useUpdatePersonagemMutation() {
     },
   });
 }
+
+export function useDeletePersonagemMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: personagensApi.remove,
+    onSuccess: async (_data, id) => {
+      queryClient.removeQueries({ queryKey: personagensQueryKeys.detail(id), exact: true });
+      await queryClient.invalidateQueries({ queryKey: listKey, exact: true });
+    },
+  });
+}

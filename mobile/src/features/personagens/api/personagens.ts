@@ -103,6 +103,15 @@ function buildPersonagensApi(client: AxiosInstance, baseUrl: string) {
     }
   }
 
+  async function deleteRequest(path: string): Promise<void> {
+    if (!isValidApiUrl(baseUrl)) throw new ApiError('A conexão com o servidor ainda não foi configurada.');
+    try {
+      await client.delete(path);
+    } catch (error) {
+      throw readableApiError(error);
+    }
+  }
+
   return {
     async list(signal?: AbortSignal): Promise<Personagem[]> {
       const data = await get('/personagens', signal);
@@ -117,6 +126,9 @@ function buildPersonagensApi(client: AxiosInstance, baseUrl: string) {
     },
     async update(id: number, values: PersonagemFormData): Promise<Personagem> {
       return parsePersonagem(await patch(`/personagens/${id}`, createPersonagemPayload(values)));
+    },
+    async remove(id: number): Promise<void> {
+      await deleteRequest(`/personagens/${id}`);
     },
   };
 }

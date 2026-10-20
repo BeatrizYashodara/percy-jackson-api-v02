@@ -122,6 +122,31 @@ test('update exposes 404, 422, network, timeout and server errors', async () => 
   await assert.rejects(createPersonagensApi('http://api.test/api', timeout).update(7, values), /demorou para responder/);
 });
 
+test('delete uses the character endpoint and accepts the API success response', async () => {
+  let requests = 0;
+  const api = createPersonagensApi('http://api.test/api', success(
+    { mensagem: 'Personagem removido com sucesso.' },
+    (config) => {
+      requests += 1;
+      assert.equal(config.method, 'delete');
+      assert.equal(config.url, '/personagens/7');
+    },
+  ));
+
+  await api.remove(7);
+  assert.equal(requests, 1);
+});
+
+test('delete exposes API, network and timeout errors', async () => {
+  await assert.rejects(createPersonagensApi('http://api.test/api', failure(404)).remove(99), /não foi encontrado/);
+  await assert.rejects(createPersonagensApi('http://api.test/api', failure(500)).remove(7), /servidor não conseguiu/);
+
+  const network: AxiosAdapter = async (config) => { throw new AxiosError('Network Error', 'ERR_NETWORK', config); };
+  await assert.rejects(createPersonagensApi('http://api.test/api', network).remove(7), /Não foi possível conectar/);
+  const timeout: AxiosAdapter = async (config) => { throw new AxiosError('timeout', 'ECONNABORTED', config); };
+  await assert.rejects(createPersonagensApi('http://api.test/api', timeout).remove(7), /demorou para responder/);
+});
+
 test('HTTP, validation and network errors have readable messages', async () => {
   await assert.rejects(createPersonagensApi('http://api.test/api', failure(404)).show(7), /não foi encontrado/);
   await assert.rejects(createPersonagensApi('http://api.test/api', failure(500)).list(), /servidor não conseguiu/);
