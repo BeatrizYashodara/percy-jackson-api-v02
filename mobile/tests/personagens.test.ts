@@ -3,6 +3,7 @@ import { test } from 'node:test';
 import { AxiosError, CanceledError, type AxiosAdapter, type InternalAxiosRequestConfig } from 'axios';
 import { personagensQueryKeys } from '../src/features/personagens/api/queryKeys.ts';
 import { createPersonagensApi, photoUrl } from '../src/features/personagens/api/personagens.ts';
+import { createApiClient, isValidApiUrl, normalizeApiUrl } from '../src/lib/apiClient.ts';
 import type { Personagem } from '../src/features/personagens/types/personagem.ts';
 
 const character: Personagem = {
@@ -37,6 +38,15 @@ test('list uses centralized Axios configuration and normalizes the API URL', asy
     await createPersonagensApi('http://api.test/api///', adapter).list(new AbortController().signal),
     [character],
   );
+});
+
+test('Axios client accepts a configurable URL and timeout', () => {
+  const client = createApiClient('  https://api.example.test/api///  ', undefined, 4321);
+  assert.equal(client.defaults.baseURL, 'https://api.example.test/api');
+  assert.equal(client.defaults.timeout, 4321);
+  assert.equal(normalizeApiUrl('http://localhost:8000/api///'), 'http://localhost:8000/api');
+  assert.equal(isValidApiUrl('https://api.example.test/api'), true);
+  assert.equal(isValidApiUrl('ftp://api.example.test'), false);
 });
 
 test('details use their own endpoint and query keys are stable', async () => {

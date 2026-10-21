@@ -15,7 +15,7 @@ type EditCharacterScreenProps = {
   onUpdated: (id: number) => void;
 };
 
-function formValues(personagem: Personagem): PersonagemFormInput {
+export function formValues(personagem: Personagem): PersonagemFormInput {
   return {
     nome: personagem.nome,
     descricao: personagem.descricao,

@@ -3,6 +3,7 @@ import { useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useRef } from 'react';
 import { personagensApi } from '../api/personagens';
 import { personagensQueryKeys } from '../api/queryKeys';
+import { cacheDeletedPersonagem, cacheSavedPersonagem } from '../api/cache';
 
 const listKey = personagensQueryKeys.list();
 
@@ -42,10 +43,7 @@ export function useCreatePersonagemMutation() {
 
   return useMutation({
     mutationFn: personagensApi.create,
-    onSuccess: async (personagem) => {
-      queryClient.setQueryData(personagensQueryKeys.detail(personagem.id), personagem);
-      await queryClient.invalidateQueries({ queryKey: listKey, exact: true });
-    },
+    onSuccess: (personagem) => cacheSavedPersonagem(queryClient, personagem),
   });
 }
 
@@ -55,10 +53,7 @@ export function useUpdatePersonagemMutation() {
   return useMutation({
     mutationFn: ({ id, values }: { id: number; values: Parameters<typeof personagensApi.update>[1] }) =>
       personagensApi.update(id, values),
-    onSuccess: async (personagem) => {
-      queryClient.setQueryData(personagensQueryKeys.detail(personagem.id), personagem);
-      await queryClient.invalidateQueries({ queryKey: listKey, exact: true });
-    },
+    onSuccess: (personagem) => cacheSavedPersonagem(queryClient, personagem),
   });
 }
 
@@ -67,9 +62,6 @@ export function useDeletePersonagemMutation() {
 
   return useMutation({
     mutationFn: personagensApi.remove,
-    onSuccess: async (_data, id) => {
-      queryClient.removeQueries({ queryKey: personagensQueryKeys.detail(id), exact: true });
-      await queryClient.invalidateQueries({ queryKey: listKey, exact: true });
-    },
+    onSuccess: (_data, id) => cacheDeletedPersonagem(queryClient, id),
   });
 }
