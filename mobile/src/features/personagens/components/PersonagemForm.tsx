@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ReactNode, useMemo } from 'react';
+import { ReactNode, useEffect, useMemo } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -26,8 +26,10 @@ type PersonagemFormProps = {
   initialValues?: Partial<PersonagemFormInput>;
   submitting?: boolean;
   submitLabel?: string;
+  submittingLabel?: string;
   onSubmit: (values: PersonagemFormData) => void | Promise<void>;
   onCancel?: () => void;
+  onDirtyChange?: (dirty: boolean) => void;
 };
 
 type FormFieldProps = TextInputProps & {
@@ -49,11 +51,12 @@ function FormField({ control, label, name, hint, style, ...inputProps }: FormFie
             {...inputProps}
             accessibilityLabel={label}
             accessibilityHint={typeof hint === 'string' ? hint : undefined}
+            accessibilityState={{ disabled: inputProps.editable === false }}
             onBlur={onBlur}
             onChangeText={onChange}
             value={value}
             placeholderTextColor={colors.muted}
-            style={[styles.input, inputProps.multiline && styles.multilineInput, style]}
+            style={[styles.input, inputProps.multiline && styles.multilineInput, error && styles.inputError, inputProps.editable === false && styles.inputDisabled, style]}
           />
           {hint ? <Text style={styles.hint}>{hint}</Text> : null}
           {error ? (
@@ -71,8 +74,10 @@ export function PersonagemForm({
   initialValues,
   submitting = false,
   submitLabel = 'Salvar personagem',
+  submittingLabel = 'Salvando…',
   onSubmit,
   onCancel,
+  onDirtyChange,
 }: PersonagemFormProps) {
   const defaultValues = useMemo(
     () => ({ ...EMPTY_PERSONAGEM_FORM_VALUES, ...initialValues }),
@@ -81,12 +86,16 @@ export function PersonagemForm({
   const {
     control,
     handleSubmit,
-    formState: { isSubmitting },
+    formState: { isDirty, isSubmitting },
   } = useForm<PersonagemFormInput, unknown, PersonagemFormData>({
     defaultValues,
     resolver: zodResolver(personagemFormSchema),
   });
   const isBusy = submitting || isSubmitting;
+
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
 
   return (
     <KeyboardAvoidingView
@@ -174,6 +183,7 @@ export function PersonagemForm({
             {onCancel ? (
               <Pressable
                 accessibilityRole="button"
+                accessibilityState={{ disabled: isBusy }}
                 disabled={isBusy}
                 onPress={onCancel}
                 style={({ pressed }) => [
@@ -188,6 +198,7 @@ export function PersonagemForm({
             ) : null}
             <Pressable
               accessibilityRole="button"
+              accessibilityState={{ busy: isBusy, disabled: isBusy }}
               disabled={isBusy}
               onPress={handleSubmit(onSubmit)}
               style={({ pressed }) => [
@@ -198,7 +209,10 @@ export function PersonagemForm({
               ]}
             >
               {isBusy ? (
-                <ActivityIndicator color={colors.surface} />
+                <View style={styles.loadingLabel}>
+                  <ActivityIndicator color={colors.surface} size="small" />
+                  <Text style={styles.submitButtonText}>{submittingLabel}</Text>
+                </View>
               ) : (
                 <Text style={styles.submitButtonText}>{submitLabel}</Text>
               )}
@@ -236,6 +250,8 @@ const styles = StyleSheet.create({
     color: colors.ink,
     fontSize: 16,
   },
+  inputError: { borderColor: colors.error, borderWidth: 2 },
+  inputDisabled: { opacity: 0.62, backgroundColor: colors.placeholder },
   multilineInput: { minHeight: 112 },
   hint: { marginTop: 6, color: colors.muted, fontSize: 12 },
   error: { marginTop: 6, color: colors.error, fontSize: 13, fontWeight: '600' },
@@ -245,6 +261,8 @@ const styles = StyleSheet.create({
   button: {
     minHeight: 48,
     minWidth: 140,
+    flexGrow: 1,
+    flexBasis: 180,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 20,
@@ -252,6 +270,7 @@ const styles = StyleSheet.create({
   },
   submitButton: { backgroundColor: colors.accent },
   submitButtonText: { color: colors.surface, fontSize: 16, fontWeight: '700' },
+  loadingLabel: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9 },
   cancelButton: { borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface },
   cancelButtonText: { color: colors.ink, fontSize: 16, fontWeight: '700' },
   buttonPressed: { opacity: 0.78 },

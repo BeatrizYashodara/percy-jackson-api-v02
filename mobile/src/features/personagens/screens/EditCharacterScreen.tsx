@@ -1,7 +1,9 @@
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
 
 import { colors } from '../../../theme';
 import { PersonagemForm } from '../components/PersonagemForm';
+import { confirmDiscard } from '../components/confirmDiscard';
 import { RequestState } from '../components/RequestState';
 import { usePersonagemQuery, useUpdatePersonagemMutation } from '../hooks/usePersonagensQueries';
 import type { PersonagemFormData, PersonagemFormInput } from '../schemas/personagemFormSchema';
@@ -28,6 +30,8 @@ function formValues(personagem: Personagem): PersonagemFormInput {
 export function EditCharacterScreen({ id, onBack, onUpdated }: EditCharacterScreenProps) {
   const characterQuery = usePersonagemQuery(id);
   const mutation = useUpdatePersonagemMutation();
+  const [isDirty, setIsDirty] = useState(false);
+  const requestBack = () => isDirty ? confirmDiscard(onBack) : onBack();
 
   const submit = async (values: PersonagemFormData) => {
     mutation.reset();
@@ -42,25 +46,28 @@ export function EditCharacterScreen({ id, onBack, onUpdated }: EditCharacterScre
 
   return <View style={styles.screen}>
     <View style={styles.header}>
-      <Pressable accessibilityRole="button" accessibilityLabel="Voltar para o personagem" disabled={mutation.isPending} onPress={onBack} style={styles.back}>
+      <Pressable accessibilityRole="button" accessibilityLabel="Voltar para o personagem" accessibilityState={{ disabled: mutation.isPending }} disabled={mutation.isPending} onPress={requestBack} style={[styles.back, mutation.isPending && styles.disabled]}>
         <Text style={styles.backText}>‹  Personagem</Text>
       </Pressable>
       <Text accessibilityRole="header" style={styles.title}>Editar personagem</Text>
       <Text style={styles.subtitle}>Atualize os dados e salve as alterações.</Text>
-      {mutation.error ? <Text accessibilityLiveRegion="polite" style={styles.error}>{mutation.error.message}</Text> : null}
+      {mutation.error ? <Text accessibilityLiveRegion="assertive" accessibilityRole="alert" style={styles.error}>{mutation.error.message}</Text> : null}
     </View>
     {characterQuery.data ? (
       <PersonagemForm
         initialValues={formValues(characterQuery.data)}
-        onCancel={onBack}
+        onCancel={requestBack}
+        onDirtyChange={setIsDirty}
         onSubmit={submit}
         submitLabel="Salvar alterações"
+        submittingLabel="Salvando…"
         submitting={mutation.isPending}
       />
     ) : (
       <RequestState
         error={characterQuery.error?.message}
         loading={characterQuery.isPending}
+        loadingMessage="Carregando dados do personagem…"
         onRetry={() => { void characterQuery.refetch(); }}
       />
     )}
@@ -75,4 +82,5 @@ const styles = StyleSheet.create({
   title: { color: '#FFFFFF', fontSize: 30, fontWeight: '700' },
   subtitle: { color: '#CFDCDE', fontSize: 15, lineHeight: 22 },
   error: { marginTop: 6, padding: 12, borderRadius: 10, color: '#FFFFFF', backgroundColor: colors.error, lineHeight: 20, fontWeight: '600' },
+  disabled: { opacity: 0.55 },
 });

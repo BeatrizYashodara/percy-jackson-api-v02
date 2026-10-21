@@ -1,7 +1,9 @@
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
 
 import { colors } from '../../../theme';
 import { PersonagemForm } from '../components/PersonagemForm';
+import { confirmDiscard } from '../components/confirmDiscard';
 import { useCreatePersonagemMutation } from '../hooks/usePersonagensQueries';
 import type { PersonagemFormData } from '../schemas/personagemFormSchema';
 
@@ -12,6 +14,8 @@ type CreateCharacterScreenProps = {
 
 export function CreateCharacterScreen({ onBack, onCreated }: CreateCharacterScreenProps) {
   const mutation = useCreatePersonagemMutation();
+  const [isDirty, setIsDirty] = useState(false);
+  const requestBack = () => isDirty ? confirmDiscard(onBack) : onBack();
 
   const submit = async (values: PersonagemFormData) => {
     mutation.reset();
@@ -26,14 +30,14 @@ export function CreateCharacterScreen({ onBack, onCreated }: CreateCharacterScre
 
   return <View style={styles.screen}>
     <View style={styles.header}>
-      <Pressable accessibilityRole="button" accessibilityLabel="Voltar para personagens" disabled={mutation.isPending} onPress={onBack} style={styles.back}>
+      <Pressable accessibilityRole="button" accessibilityLabel="Voltar para personagens" accessibilityState={{ disabled: mutation.isPending }} disabled={mutation.isPending} onPress={requestBack} style={[styles.back, mutation.isPending && styles.disabled]}>
         <Text style={styles.backText}>‹  Personagens</Text>
       </Pressable>
       <Text accessibilityRole="header" style={styles.title}>Novo personagem</Text>
       <Text style={styles.subtitle}>Preencha os dados obrigatórios para adicionar um personagem.</Text>
-      {mutation.error ? <Text accessibilityLiveRegion="polite" style={styles.error}>{mutation.error.message}</Text> : null}
+      {mutation.error ? <Text accessibilityLiveRegion="assertive" accessibilityRole="alert" style={styles.error}>{mutation.error.message}</Text> : null}
     </View>
-    <PersonagemForm onCancel={onBack} onSubmit={submit} submitLabel="Cadastrar personagem" submitting={mutation.isPending} />
+    <PersonagemForm onCancel={requestBack} onDirtyChange={setIsDirty} onSubmit={submit} submitLabel="Cadastrar personagem" submittingLabel="Cadastrando…" submitting={mutation.isPending} />
   </View>;
 }
 
@@ -45,4 +49,5 @@ const styles = StyleSheet.create({
   title: { color: '#FFFFFF', fontSize: 30, fontWeight: '700' },
   subtitle: { color: '#CFDCDE', fontSize: 15, lineHeight: 22 },
   error: { marginTop: 6, padding: 12, borderRadius: 10, color: '#FFFFFF', backgroundColor: colors.error, lineHeight: 20, fontWeight: '600' },
+  disabled: { opacity: 0.55 },
 });

@@ -53,7 +53,7 @@ export function CharacterDetailScreen({ id, onBack, onEdit, onDeleted }: Charact
 
   return <View style={styles.screen}>
     <View style={styles.topBar}>
-      <Pressable accessibilityRole="button" accessibilityLabel="Voltar para personagens" disabled={deleteMutation.isPending} onPress={onBack} style={styles.back}>
+      <Pressable accessibilityRole="button" accessibilityLabel="Voltar para personagens" accessibilityState={{ disabled: deleteMutation.isPending }} disabled={deleteMutation.isPending} onPress={onBack} style={[styles.back, deleteMutation.isPending && styles.buttonDisabled]}>
         <Text style={styles.backText}>‹  Personagens</Text>
       </Pressable>
     </View>
@@ -63,13 +63,13 @@ export function CharacterDetailScreen({ id, onBack, onEdit, onDeleted }: Charact
       <CharacterPhoto uri={photoUrl(data)} name={data.nome} large />
       <Text style={styles.race}>{data.raca || 'Raça não informada'}</Text>
       <Text style={styles.title} accessibilityRole="header">{data.nome}</Text>
-      {deleteMutation.error ? <Text accessibilityLiveRegion="polite" style={styles.error}>{deleteMutation.error.message}</Text> : null}
+      {deleteMutation.error ? <Text accessibilityLiveRegion="assertive" accessibilityRole="alert" style={styles.error}>{deleteMutation.error.message}</Text> : null}
       <View style={styles.actions}>
-        <Pressable accessibilityRole="button" disabled={deleteMutation.isPending} onPress={onEdit} style={({ pressed }) => [styles.editButton, pressed && styles.buttonPressed, deleteMutation.isPending && styles.buttonDisabled]}>
+        <Pressable accessibilityRole="button" accessibilityState={{ disabled: deleteMutation.isPending }} disabled={deleteMutation.isPending} onPress={onEdit} style={({ pressed }) => [styles.actionButton, styles.editButton, pressed && styles.buttonPressed, deleteMutation.isPending && styles.buttonDisabled]}>
           <Text style={styles.editButtonText}>Editar</Text>
         </Pressable>
-        <Pressable accessibilityRole="button" disabled={deleteMutation.isPending} onPress={requestDelete} style={({ pressed }) => [styles.deleteButton, pressed && styles.buttonPressed, deleteMutation.isPending && styles.buttonDisabled]}>
-          {deleteMutation.isPending ? <ActivityIndicator color={colors.surface} /> : <Text style={styles.deleteButtonText}>Excluir</Text>}
+        <Pressable accessibilityRole="button" accessibilityHint="Solicita confirmação antes de excluir" accessibilityState={{ busy: deleteMutation.isPending, disabled: deleteMutation.isPending }} disabled={deleteMutation.isPending} onPress={requestDelete} style={({ pressed }) => [styles.actionButton, styles.deleteButton, pressed && styles.buttonPressed, deleteMutation.isPending && styles.buttonDisabled]}>
+          {deleteMutation.isPending ? <View style={styles.loadingLabel}><ActivityIndicator color={colors.surface} size="small" /><Text style={styles.deleteButtonText}>Excluindo…</Text></View> : <Text style={styles.deleteButtonText}>Excluir</Text>}
         </Pressable>
       </View>
       <Text style={styles.description}>{data.descricao}</Text>
@@ -108,12 +108,14 @@ const styles = StyleSheet.create({
   race: { color: colors.accent, fontSize: 14, fontWeight: '700', marginTop: 8 },
   title: { color: colors.ink, fontSize: 32, fontWeight: '700' },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  editButton: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 20, borderRadius: 12, backgroundColor: colors.accent },
+  actionButton: { minHeight: 48, minWidth: 120, flexGrow: 1, flexBasis: 160, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 20, borderRadius: 12 },
+  editButton: { backgroundColor: colors.accent },
   editButtonText: { color: colors.surface, fontSize: 15, fontWeight: '700' },
-  deleteButton: { minHeight: 44, minWidth: 90, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 20, borderRadius: 12, backgroundColor: colors.error },
+  deleteButton: { backgroundColor: colors.error },
   deleteButtonText: { color: colors.surface, fontSize: 15, fontWeight: '700' },
   buttonPressed: { opacity: 0.78 },
   buttonDisabled: { opacity: 0.55 },
+  loadingLabel: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9 },
   error: { padding: 12, borderRadius: 10, color: '#FFFFFF', backgroundColor: colors.error, lineHeight: 20, fontWeight: '600' },
   description: { fontSize: 16, color: colors.muted, lineHeight: 26 },
   fields: { backgroundColor: colors.surface, borderRadius: 18, paddingHorizontal: 20, borderWidth: 1, borderColor: colors.line },

@@ -1,14 +1,23 @@
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors } from '../../../theme';
 
-export function RequestState({ loading, error, onRetry }: { loading?: boolean; error?: string | null; onRetry: () => void }) {
+type RequestStateProps = {
+  loading?: boolean;
+  error?: string | null;
+  onRetry: () => void;
+  emptyActionLabel?: string;
+  onEmptyAction?: () => void;
+  loadingMessage?: string;
+};
+
+export function RequestState({ loading, error, onRetry, emptyActionLabel, onEmptyAction, loadingMessage = 'Carregando personagens…' }: RequestStateProps) {
   return (
     <View style={styles.container} accessibilityLiveRegion="polite">
-      {loading ? <><ActivityIndicator size="large" color={colors.ink} /><Text style={styles.message}>Carregando personagens…</Text></> : <>
+      {loading ? <><ActivityIndicator size="large" color={colors.ink} /><Text style={styles.message}>{loadingMessage}</Text></> : <>
         <Text style={styles.title}>{error ? 'Não foi possível carregar' : 'Nenhum personagem por aqui'}</Text>
         <Text style={styles.message}>{error || 'Os personagens aparecerão aqui quando estiverem disponíveis.'}</Text>
-        <Pressable accessibilityRole="button" onPress={onRetry} style={({ pressed }) => [styles.button, pressed && { opacity: 0.7 }]}>
-          <Text style={styles.buttonText}>{error ? 'Tentar novamente' : 'Atualizar'}</Text>
+        <Pressable accessibilityRole="button" onPress={!error && onEmptyAction ? onEmptyAction : onRetry} style={({ pressed }) => [styles.button, pressed && { opacity: 0.7 }]}>
+          <Text style={styles.buttonText}>{error ? 'Tentar novamente' : emptyActionLabel ?? 'Atualizar'}</Text>
         </Pressable>
       </>}
     </View>
